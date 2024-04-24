@@ -3,6 +3,8 @@ package com.znsio.kendo;
 import com.epam.reportportal.karate.KarateReportPortalRunner;
 import com.intuit.karate.Results;
 import com.jayway.jsonpath.JsonPath;
+import com.znsio.kendo.cmd.CommandLineExecutor;
+import com.znsio.kendo.cmd.CommandLineResponse;
 import com.znsio.kendo.exceptions.InvalidTestDataException;
 import com.znsio.kendo.exceptions.TestExecutionException;
 import org.junit.jupiter.api.Test;
@@ -14,10 +16,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
@@ -26,16 +28,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import static com.intuit.karate.FileUtils.WORKING_DIR;
 import static com.znsio.kendo.OverriddenVariable.getOverriddenStringValue;
 
 public class RunTest {
 
     private final int parallelCount;
+    private final String branchName;
     private final String buildId;
     private final String buildInitiationReason;
     private final String projectName;
-    private final String osName = System.getProperty("os.name");
     private final String javaVersion = System.getProperty("java.specification.version");
     private final String userName = System.getProperty("user.name");
     private final String testType;
@@ -45,6 +46,9 @@ public class RunTest {
     private static final String DEFAULT_PARALLEL_COUNT = "5";
     private static final String DEFAULT_TEST_DATA_FILENAME = "./src/test/java/test_data.json";
 
+    public static final String OS_NAME = System.getProperty("os.name");
+    public static final boolean IS_WINDOWS = OS_NAME.toLowerCase().startsWith("windows");
+    public static final boolean IS_MAC = OS_NAME.toLowerCase().startsWith("mac");
     private static final String WORKING_DIR = System.getProperty("user.dir");
     private static final String CURRENT_DIR_NAME = Paths.get("").toAbsolutePath().getFileName().toString();
     private static final String NOT_SET = "NOT_SET";
@@ -65,6 +69,7 @@ public class RunTest {
     private final String DEFAULT_CONFIG_FILE_NAME = "./src/test/java/config.properties";
 
     private enum Metadata {
+        BRANCH_NAME_ENV_VAR,
         BUILD_ID_ENV_VAR,
         BUILD_INITIATION_REASON_ENV_VAR,
         PARALLEL_COUNT,
@@ -82,6 +87,7 @@ public class RunTest {
 
         reportsDirectory = getReportsDirectory();
         properties = loadProperties(getConfigFileName());
+        branchName = getBranchName(Metadata.BRANCH_NAME_ENV_VAR, NOT_SET);
         buildId = getOverloadedValueFor(Metadata.BUILD_ID_ENV_VAR, NOT_SET);
         buildInitiationReason = getOverloadedValueFor(Metadata.BUILD_INITIATION_REASON_ENV_VAR, NOT_SET);
         parallelCount = Integer.parseInt(getOverloadedValueFromPropertiesFor(Metadata.PARALLEL_COUNT, DEFAULT_PARALLEL_COUNT));
@@ -226,10 +232,11 @@ public class RunTest {
         testMetadata.put("ParallelCount", parallelCount);
         testMetadata.put("LoggedInUser", userName);
         testMetadata.put("JavaVersion", javaVersion);
-        testMetadata.put("OS", osName);
+        testMetadata.put("OS", OS_NAME);
         testMetadata.put("HostName", getHostMachineName());
-        testMetadata.put("BuildInitiationReason", buildInitiationReason);
+        testMetadata.put("BranchName", branchName);
         testMetadata.put("BuildId", buildId);
+        testMetadata.put("BuildInitiationReason", buildInitiationReason);
         testMetadata.put("BaseUrl", getBaseUrl());
         testMetadata.put("RunInCI", getIsRunInCI());
         if (null != System.getenv("TAG")) {
@@ -249,6 +256,20 @@ public class RunTest {
 
     private static String getStringValueFromPropertiesIfAvailable(String key, String defaultValue) {
         return properties.getProperty(key, String.valueOf(defaultValue));
+    }
+
+    private String getBranchName(Metadata metadata, String defaultValue) {
+        String branchName = getOverriddenStringValue(Metadata.BRANCH_NAME_ENV_VAR.name(), getStringValueFromPropertiesIfAvailable(Metadata.BRANCH_NAME_ENV_VAR.name(), NOT_SET));
+        branchName = getOverriddenStringValue(branchName, getBranchNameUsingGitCommand());
+        return branchName;
+    }
+
+    private static String getBranchNameUsingGitCommand() {
+        String[] getBranchNameCommand = new String[]{"git rev-parse --abbrev-ref HEAD"};
+        CommandLineResponse response = CommandLineExecutor.execCommand(getBranchNameCommand);
+        String branchName = response.getStdOut();
+        System.out.println(String.format("\tBranch name from git command: '%s': '%s'", Arrays.toString(getBranchNameCommand), branchName));
+        return branchName;
     }
 
     private String getOverloadedValueFor(Metadata propertyName, String defaultValue) {
