@@ -14,6 +14,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -44,6 +46,7 @@ public class RunTest {
     private static final String DEFAULT_TEST_DATA_FILENAME = "./src/test/java/test_data.json";
 
     private static final String WORKING_DIR = System.getProperty("user.dir");
+    private static final String CURRENT_DIR_NAME = Paths.get("").toAbsolutePath().getFileName().toString();
     private static final String NOT_SET = "NOT_SET";
     private static final String LOCAL_RUN = "LOCAL_RUN";
     private static final String NA = "N/A";
@@ -82,7 +85,7 @@ public class RunTest {
         buildId = getOverloadedValueFor(Metadata.BUILD_ID_ENV_VAR, NOT_SET);
         buildInitiationReason = getOverloadedValueFor(Metadata.BUILD_INITIATION_REASON_ENV_VAR, NOT_SET);
         parallelCount = Integer.parseInt(getOverloadedValueFromPropertiesFor(Metadata.PARALLEL_COUNT, DEFAULT_PARALLEL_COUNT));
-        projectName = getOverloadedValueFromPropertiesFor(Metadata.PROJECT_NAME, WORKING_DIR);
+        projectName = getOverloadedValueFromPropertiesFor(Metadata.PROJECT_NAME, CURRENT_DIR_NAME);
         rpEnable = getOverloadedValueFromPropertiesFor(Metadata.RP_ENABLE, String.valueOf(false));
         testDataFile = getTestDataFileName();
         testType = getOverloadedValueFromPropertiesFor(Metadata.TEST_TYPE, NOT_SET);
@@ -171,7 +174,7 @@ public class RunTest {
         System.out.printf("Class: %s :: Test: runKarateTests%n", this.getClass().getSimpleName());
         List<String> tags = getTags();
         System.setProperty("rp.launch", projectName + " " + testType + " tests");
-        System.setProperty("rp.description", projectName + " " + testType + " tests");
+        System.setProperty("rp.description", "Running " + testType + " tests for project: " + projectName);
         System.setProperty("rp.launch.uuid.print", String.valueOf(Boolean.TRUE));
         System.setProperty("rp.client.join", String.valueOf(Boolean.FALSE));
         System.setProperty("rp.attributes", getRpAttributes());
