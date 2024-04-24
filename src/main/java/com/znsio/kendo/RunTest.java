@@ -39,7 +39,7 @@ public class RunTest {
     private final String projectName;
     private final String javaVersion = System.getProperty("java.specification.version");
     private final String userName = System.getProperty("user.name");
-    private final String testType;
+    private final TEST_TYPE testType;
     private static final String DEFAULT_CUCUMBER_REPORTS_FILE_NAME = "cucumber-html-reports";
     private static final String DEFAULT_KARATE_REPORTS_DIR_NAME = "karate-reports";
     static final String DEFAULT_LOGBACK_XML_FILE_NAME = "/src/test/java/logback-test.xml";
@@ -81,6 +81,11 @@ public class RunTest {
         CONFIG_FILE
     }
 
+    private enum TEST_TYPE {
+        api,
+        workflow
+    }
+
     public RunTest() {
         System.setProperty("logback.configurationFile", WORKING_DIR + DEFAULT_LOGBACK_XML_FILE_NAME);
         System.out.println("Set system property: logback.configurationFile=" + WORKING_DIR + DEFAULT_LOGBACK_XML_FILE_NAME);
@@ -94,7 +99,7 @@ public class RunTest {
         projectName = getOverloadedValueFromPropertiesFor(Metadata.PROJECT_NAME, CURRENT_DIR_NAME);
         rpEnable = getOverloadedValueFromPropertiesFor(Metadata.RP_ENABLE, String.valueOf(false));
         testDataFile = getTestDataFileName();
-        testType = getOverloadedValueFromPropertiesFor(Metadata.TEST_TYPE, NOT_SET);
+        testType = getTestType();
         karateEnv = getOverloadedValueFromPropertiesFor(Metadata.TARGET_ENVIRONMENT, NOT_SET);
 
         String testDataFileName = new File(testDataFile).getName();
@@ -105,6 +110,15 @@ public class RunTest {
 
         loadEnvConfig();
         captureTestExecutionMetadata();
+    }
+
+    private TEST_TYPE getTestType() {
+        String testType = getOverloadedValueFromPropertiesFor(Metadata.TEST_TYPE, NOT_SET).toLowerCase();
+        try {
+            return TEST_TYPE.valueOf(testType);
+        } catch (IllegalArgumentException e) {
+            throw new InvalidTestDataException("Invalid test type: '%s' provided. Supported values are: '%s'".formatted(testType, Arrays.toString(TEST_TYPE.values())));
+        }
     }
 
     private String getConfigFileName() {
@@ -182,8 +196,8 @@ public class RunTest {
     void runKarateTests() {
         System.out.printf("Class: %s :: Test: runKarateTests%n", this.getClass().getSimpleName());
         List<String> tags = getTags();
-        System.setProperty("rp.launch", projectName + " " + testType + " tests");
-        System.setProperty("rp.description", "Running " + testType + " tests for project: " + projectName);
+        System.setProperty("rp.launch", projectName + " " + testType.name() + " tests");
+        System.setProperty("rp.description", "Running " + testType.name() + " tests for project: " + projectName);
         System.setProperty("rp.launch.uuid.print", String.valueOf(Boolean.TRUE));
         System.setProperty("rp.client.join", String.valueOf(Boolean.FALSE));
         System.setProperty("rp.attributes", getRpAttributes());
@@ -228,7 +242,7 @@ public class RunTest {
     private void captureTestExecutionMetadata() {
         testMetadata.put("RunByFatJarRunner", System.getProperty("IS_FATJAR_RUNNER", Boolean.FALSE.toString()));
         testMetadata.put("TargetEnvironment", karateEnv);
-        testMetadata.put("Type", testType);
+        testMetadata.put("Type", testType.name());
         testMetadata.put("ParallelCount", parallelCount);
         testMetadata.put("LoggedInUser", userName);
         testMetadata.put("JavaVersion", javaVersion);
@@ -422,8 +436,7 @@ public class RunTest {
 
     private String getClasspath() {
         System.out.println("In " + this.getClass().getSimpleName() + " :: getClassPath");
-        String type = testType;
-        String classPath = "classpath:com/znsio/" + type;
+        String classPath = "classpath:com/znsio/" + testType.name();
         System.out.printf("Running %s tests%n", classPath);
         return classPath;
     }
