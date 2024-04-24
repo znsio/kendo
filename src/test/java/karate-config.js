@@ -7,7 +7,9 @@ function fn() {
   karate.configure('connectTimeout', 30000);
   karate.configure('readTimeout', 60000);
 
-  var config = read('classpath:test_data.json');
+  var testDataFile = java.lang.System.getProperty('TEST_DATA_FILE_NAME');
+  karate.log('Loading testDataFile: ', testDataFile);
+  var config = read(`classpath:${testDataFile}`);
   config = config[env];
   var username = java.lang.System.getProperty('user.name').replace(".", "").toLowerCase();
   if (['anandbagmar'].indexOf(username) < 0) {

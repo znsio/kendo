@@ -91,8 +91,11 @@ public class RunTest {
         testType = getOverloadedValueFromPropertiesFor(Metadata.TEST_TYPE, NOT_SET);
         karateEnv = getOverloadedValueFromPropertiesFor(Metadata.TARGET_ENVIRONMENT, NOT_SET);
 
-        System.out.println("WORKING_DIR: " + WORKING_DIR);
+        String testDataFileName = new File(testDataFile).getName();
+        System.out.println("testDataFileName: " + testDataFileName);
+        System.setProperty(Metadata.TEST_DATA_FILE_NAME.name(), testDataFileName);
 
+        System.out.println("WORKING_DIR: " + WORKING_DIR);
 
         loadEnvConfig();
         captureTestExecutionMetadata();
