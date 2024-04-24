@@ -12,6 +12,8 @@ function fn() {
   var config = read(`classpath:${testDataFile}`);
   config = config[env];
   var username = java.lang.System.getProperty('user.name').replace(".", "").toLowerCase();
+
+  // Add logic to determine if running in CI
   if (['anandbagmar'].indexOf(username) < 0) {
     username = "ci";
   }
