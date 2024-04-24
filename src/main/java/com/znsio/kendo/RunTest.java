@@ -206,8 +206,9 @@ public class RunTest {
 
     private String getRpAttributes() {
         StringBuilder rpAttributes = new StringBuilder();
+        System.out.println("Adding following attributes to ReportPortal's Launch");
         for (Map.Entry<String, Integer> entry : sortedTestMetaDataKeys) {
-            System.out.println(entry.getKey() + " : " + entry.getValue());
+            System.out.println("\t" + entry.getKey() + " : " + entry.getValue());
             rpAttributes.append(entry.getKey()).append(":").append(entry.getValue()).append(";");
         }
 
@@ -302,8 +303,9 @@ public class RunTest {
     }
 
     private void addClassifications(net.masterthought.cucumber.Configuration config) {
+        System.out.println("Adding classifications in cucumber-html-reports");
         for (Map.Entry<String, Integer> entry : sortedTestMetaDataKeys) {
-            System.out.println(entry.getKey() + " : " + entry.getValue());
+            System.out.println("\t" + entry.getKey() + " : " + entry.getValue());
             config.addClassifications(entry.getKey(), String.valueOf(entry.getValue()));
         }
     }
