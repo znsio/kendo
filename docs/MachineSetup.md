@@ -1,3 +1,7 @@
+Back to main [README](./../README.md)
+
+-----
+
 # Machine setup
 
 * Install JDK 17 or higher
@@ -19,3 +23,8 @@
     * Git
     * GitHub
     * Terminal
+
+-----
+
+Back to main [README](./../README.md)
+

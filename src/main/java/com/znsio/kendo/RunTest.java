@@ -64,6 +64,8 @@ public class RunTest {
     private static Map<String, Object> testDataConfig;
     private static Properties properties;
     private final String karateEnv;
+    private final String customTags;
+    private final List<String> tags;
     private final String testDataFile;
     private final String rpEnable;
     private final String DEFAULT_CONFIG_FILE_NAME = "./src/test/java/config.properties";
@@ -75,6 +77,7 @@ public class RunTest {
         PARALLEL_COUNT,
         PROJECT_NAME,
         RP_ENABLE,
+        TAGS,
         TEST_DATA_FILE_NAME,
         TEST_TYPE,
         TARGET_ENVIRONMENT,
@@ -98,6 +101,7 @@ public class RunTest {
         parallelCount = Integer.parseInt(getOverloadedValueFromPropertiesFor(Metadata.PARALLEL_COUNT, DEFAULT_PARALLEL_COUNT));
         projectName = getOverloadedValueFromPropertiesFor(Metadata.PROJECT_NAME, CURRENT_DIR_NAME);
         rpEnable = getOverloadedValueFromPropertiesFor(Metadata.RP_ENABLE, String.valueOf(false));
+        customTags = getOverloadedValueFromPropertiesFor(Metadata.TAGS, "");
         testDataFile = getTestDataFileName();
         testType = getTestType();
         karateEnv = getOverloadedValueFromPropertiesFor(Metadata.TARGET_ENVIRONMENT, NOT_SET);
@@ -105,8 +109,8 @@ public class RunTest {
         String testDataFileName = new File(testDataFile).getName();
         System.out.println("testDataFileName: " + testDataFileName);
         System.setProperty(Metadata.TEST_DATA_FILE_NAME.name(), testDataFileName);
-
         System.out.println("WORKING_DIR: " + WORKING_DIR);
+        tags = getTags();
 
         loadEnvConfig();
         captureTestExecutionMetadata();
@@ -195,7 +199,6 @@ public class RunTest {
     @Test
     void runKarateTests() {
         System.out.printf("Class: %s :: Test: runKarateTests%n", this.getClass().getSimpleName());
-        List<String> tags = getTags();
         System.setProperty("rp.launch", projectName + " " + testType.name() + " tests");
         System.setProperty("rp.description", "Running " + testType.name() + " tests for project: " + projectName);
         System.setProperty("rp.launch.uuid.print", String.valueOf(Boolean.TRUE));
@@ -253,9 +256,8 @@ public class RunTest {
         testMetadata.put("BuildInitiationReason", buildInitiationReason);
         testMetadata.put("BaseUrl", getBaseUrl());
         testMetadata.put("RunInCI", getIsRunInCI());
-        if (null != System.getenv("TAG")) {
-            testMetadata.put("Tags", System.getenv("TAG"));
-        }
+        testMetadata.put("Tags (custom)", customTags);
+        testMetadata.put("Tags", tags);
 
         // Convert hashmap entries to a list
         sortedTestMetaDataKeys = new ArrayList<>(testMetadata.entrySet());
@@ -407,9 +409,8 @@ public class RunTest {
     private List<String> getTags() {
         System.out.println("In " + this.getClass().getSimpleName() + " :: getTags");
         java.util.List<String> tagsToRun = new java.util.ArrayList<>();
-        String customTagsToRun = System.getenv("TAG");
-        if ((null != customTagsToRun) && (!customTagsToRun.trim().isEmpty())) {
-            String[] customTags = customTagsToRun.trim().split(":");
+        if ((null != customTags) && (!customTags.trim().isEmpty())) {
+            String[] customTags = this.customTags.trim().split(":");
             for (String customTag : customTags) {
                 tagsToRun.addAll(List.of(customTag));
             }

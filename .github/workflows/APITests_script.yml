@@ -32,4 +32,4 @@ jobs:
       - name: Run API tests from fatjar
         run: |
           cd upload
-          TYPE=api TARGET_ENVIRONMENT=prod  ./runAPIWorkflowTests.sh
+          TEST_TYPE=api TARGET_ENVIRONMENT=prod  ./runAPIWorkflowTests.sh

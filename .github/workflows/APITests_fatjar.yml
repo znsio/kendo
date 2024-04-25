@@ -32,4 +32,4 @@ jobs:
       - name: Run API tests from fatjar
         run: |
           cd upload
-          TYPE=api TARGET_ENVIRONMENT=prod java -jar kendo-0.0.1.jar
+          TEST_TYPE=api TARGET_ENVIRONMENT=prod java -jar kendo-0.0.1.jar

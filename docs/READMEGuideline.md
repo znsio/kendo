@@ -1,3 +1,7 @@
+Back to main [README](./../README.md)
+
+-----
+
 # CODING GUIDLINES FOR AUTOMATION USING KARATE
 
 ## **Naming conventions**
@@ -48,5 +52,6 @@
 
 4. **Follow proper spacing**
 
+-----
 
-
+Back to main [README](./../README.md)
