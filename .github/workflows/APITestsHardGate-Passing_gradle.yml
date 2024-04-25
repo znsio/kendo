@@ -5,7 +5,7 @@
 # This workflow will build a Java project with Gradle and cache/restore any dependencies to improve the workflow execution time
 # For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-gradle
 
-name: WorkflowTests_Gradle
+name: APITestsHardGate-Passing
 
 on:
   push:
@@ -29,6 +29,6 @@ jobs:
         uses: gradle/gradle-build-action@e2097ccd7e8ed48671dc068ac4efa86d25745b39
         with:
           arguments: build --refresh-dependencies
-      - name: Run Workflow tests as gradle task
+      - name: Run passing API tests as gradle task with SET_HARD_GATE=true
         run: |
-          TEST_TYPE=workflow TARGET_ENVIRONMENT=prod ./gradlew clean run
+          TEST_TYPE=api TAGS=hardGate TARGET_ENVIRONMENT=prod SET_HARD_GATE=true IS_FAILING_TEST_SUITE=false ./gradlew clean run

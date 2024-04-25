@@ -5,6 +5,7 @@ import com.intuit.karate.Results;
 import com.jayway.jsonpath.JsonPath;
 import com.znsio.kendo.cmd.CommandLineExecutor;
 import com.znsio.kendo.cmd.CommandLineResponse;
+import com.znsio.kendo.exceptions.HardGateFailedException;
 import com.znsio.kendo.exceptions.InvalidTestDataException;
 import com.znsio.kendo.exceptions.TestExecutionException;
 import org.junit.jupiter.api.Test;
@@ -69,8 +70,10 @@ public class RunTest {
     private final String testDataFile;
     private final String rpEnable;
     private final String DEFAULT_CONFIG_FILE_NAME = "./src/test/java/config.properties";
+    private final boolean isSetHardGate;
+    private final boolean isFailingTestSuite;
 
-    private enum Metadata {
+    enum Metadata {
         BRANCH_NAME_ENV_VAR,
         BUILD_ID_ENV_VAR,
         BUILD_INITIATION_REASON_ENV_VAR,
@@ -81,6 +84,9 @@ public class RunTest {
         TEST_DATA_FILE_NAME,
         TEST_TYPE,
         TARGET_ENVIRONMENT,
+        SET_HARD_GATE,
+        IS_FAILING_TEST_SUITE,
+        FAIL_THE_BUILD,
         CONFIG_FILE
     }
 
@@ -104,6 +110,8 @@ public class RunTest {
         customTags = getOverloadedValueFromPropertiesFor(Metadata.TAGS, "");
         testDataFile = getTestDataFileName();
         testType = getTestType();
+        isSetHardGate = Boolean.parseBoolean(getOverloadedValueFromPropertiesFor(Metadata.SET_HARD_GATE, String.valueOf(false)));
+        isFailingTestSuite = Boolean.parseBoolean(getOverloadedValueFromPropertiesFor(Metadata.IS_FAILING_TEST_SUITE, String.valueOf(false)));
         karateEnv = getOverloadedValueFromPropertiesFor(Metadata.TARGET_ENVIRONMENT, NOT_SET);
 
         String testDataFileName = new File(testDataFile).getName();
@@ -215,18 +223,59 @@ public class RunTest {
                 .outputHtmlReport(true)
                 .parallel(getParallelCount());
         String reportFilePath = generateCucumberHtmlReport(results.getReportDir());
-        String message = "\n\n" + "Test execution summary: ";
-        message += "\n\t" + "Tags: " + tags;
-        message += "\n\t" + "Environment: " + karateEnv;
-        message += "\n\t" + "Parallel count: " + getParallelCount();
-        message += "\n\t" + "Scenarios: Failed: " + results.getScenariosFailed() + ", Passed: " + results.getScenariosPassed() + ", Total: " + results.getScenariosTotal();
-        message += "\n\t" + "Features : Failed: " + results.getFeaturesFailed() + ", Passed: " + results.getFeaturesPassed() + ", Total: " + results.getFeaturesTotal();
-        message += "\n\t" + "Karate Reports available here: file://" + karateReportsDir + File.separator + "karate-summary.html";
-        message += "\n\t" + "Cucumber Reports available here: file://" + reportFilePath;
-        if (results.getScenariosFailed() > 0) {
-            throw new TestExecutionException(message);
+        logTestExecutionStatus result = getLogTestExecutionStatus(results, karateReportsDir, reportFilePath);
+        checkHardGate(result.scenariosPassed(), result.scenariosFailed(), result.testExecutionSummaryMessage());
+    }
+
+    private logTestExecutionStatus getLogTestExecutionStatus(Results results, String karateReportsDir, String reportFilePath) {
+        String testExecutionSummaryMessage = "\n\n" + "Test execution summary: ";
+        testExecutionSummaryMessage += "\n\t" + "Tags: " + tags;
+        testExecutionSummaryMessage += "\n\t" + "Environment: " + karateEnv;
+        testExecutionSummaryMessage += "\n\t" + "Parallel count: " + getParallelCount();
+        int scenariosFailed = results.getScenariosFailed();
+        int scenariosPassed = results.getScenariosPassed();
+        int scenariosTotal = results.getScenariosTotal();
+        testExecutionSummaryMessage += "\n\t" + "Scenarios: Failed: " + scenariosFailed + ", Passed: " + scenariosPassed + ", Total: " + scenariosTotal;
+        testExecutionSummaryMessage += "\n\t" + "Features : Failed: " + results.getFeaturesFailed() + ", Passed: " + results.getFeaturesPassed() + ", Total: " + results.getFeaturesTotal();
+        testExecutionSummaryMessage += "\n\t" + "Karate Reports available here: file://" + karateReportsDir + File.separator + "karate-summary.html";
+        testExecutionSummaryMessage += "\n\t" + "Cucumber Reports available here: file://" + reportFilePath;
+
+        logTestExecutionStatus result = new logTestExecutionStatus(testExecutionSummaryMessage, scenariosFailed, scenariosPassed);
+        return result;
+    }
+
+    private record logTestExecutionStatus(String testExecutionSummaryMessage, int scenariosFailed, int scenariosPassed) {
+    }
+
+    private void checkHardGate(int scenariosPassed, int scenariosFailed, String testExecutionSummaryMessage) {
+        if (isSetHardGate) {
+            if (isFailingTestSuite) {
+                if (scenariosPassed == 0) {
+                    // pass the build
+                    System.out.printf("Hard Gate passed for Failing Tests build. %n%s%n", testExecutionSummaryMessage);
+                } else {
+                    // hard gate exception
+                    System.setProperty(RunTest.Metadata.FAIL_THE_BUILD.name(), String.valueOf(true));
+                    throw new HardGateFailedException("Hard Gate failed for Failing Tests build. %n%s".formatted(testExecutionSummaryMessage));
+                }
+            } else {
+                if (scenariosFailed == 0) {
+                    // pass the build
+                    System.out.printf("Hard Gate passed for Passing Tests build. %n%s%n", testExecutionSummaryMessage);
+                } else {
+                    // hard gate exception
+                    System.setProperty(RunTest.Metadata.FAIL_THE_BUILD.name(), String.valueOf(true));
+                    throw new HardGateFailedException("Hard Gate failed for Passing Tests build. %n%s".formatted(testExecutionSummaryMessage));
+                }
+            }
         } else {
-            System.out.println(message);
+            if (scenariosFailed > 0) {
+                System.out.println("Hard Gate not set. Test(s) failed.");
+                throw new TestExecutionException(testExecutionSummaryMessage);
+            } else {
+                System.out.println("Hard Gate not set. Test(s) passed.");
+                System.out.println(testExecutionSummaryMessage);
+            }
         }
     }
 
@@ -420,6 +469,13 @@ public class RunTest {
         tagsToRun.add("~@wip");
         tagsToRun.add("~@template");
         tagsToRun.add("~@data");
+        if (isSetHardGate) {
+            if (isFailingTestSuite) {
+                tagsToRun.add("@failing");
+            } else {
+                tagsToRun.add("~@failing");
+            }
+        }
 
         System.out.println("Run tests with tags: " + tagsToRun);
         return tagsToRun;

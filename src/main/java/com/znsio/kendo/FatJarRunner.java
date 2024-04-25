@@ -1,5 +1,6 @@
 package com.znsio.kendo;
 
+import com.znsio.kendo.exceptions.HardGateFailedException;
 import org.junit.platform.launcher.Launcher;
 import org.junit.platform.launcher.LauncherDiscoveryRequest;
 import org.junit.platform.launcher.TestPlan;
@@ -39,17 +40,28 @@ public class FatJarRunner {
         FatJarRunner runner = new FatJarRunner();
         runner.runAll();
 
+        boolean isFailTheBuild = Boolean.parseBoolean(System.getProperty(RunTest.Metadata.FAIL_THE_BUILD.name(), String.valueOf(false)));
+
         TestExecutionSummary summary = runner.listener.getSummary();
         summary.printTo(new PrintWriter(System.out));
-        if (summary.getTestsAbortedCount() > 0 || summary.getTestsFailedCount() > 0) {
-            String testFailureSummary = "";
+
+        boolean haveTestsFailed = summary.getTestsAbortedCount() > 0 || summary.getTestsFailedCount() > 0;
+        String testFailureSummary = "";
+        if (haveTestsFailed) {
             for (Failure failure : summary.getFailures()) {
                 testFailureSummary += failure.getTestIdentifier()
                         .getDisplayName() + "->\n" + failure.getException()
                         .toString() + "\n";
             }
+        }
 
-            throw new RuntimeException("Tests failed" + testFailureSummary);
+        if (isFailTheBuild) {
+            System.out.println("FatJarRunner: Hard gate failure - throwing exception");
+            throw new HardGateFailedException("Hard gate failure" + testFailureSummary);
+        } else {
+            if (haveTestsFailed) {
+                throw new RuntimeException("Tests failed" + testFailureSummary);
+            }
         }
     }
 }

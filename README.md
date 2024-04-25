@@ -38,6 +38,8 @@ Example
 
 ## [ReportPortal](./docs/ReportPortal.md)
 
+## [Setting up the Hard Gate](./docs/HardGate.md)
+
 ## [Machine setup](./docs/MachineSetup.md)
 
 ## Guidelines 
