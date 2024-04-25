@@ -20,7 +20,7 @@ Example
 
   `./gradlew build`
 
-- The above command will create a jar in the upload folder with the name like: `upload/getting-started-with-karate-0.0.1.jar`
+- The above command will create a jar in the upload folder with the name like: `upload/kendo-0.0.1.jar`
 
 ### Running the tests with a shell script:
 
@@ -29,8 +29,8 @@ Example
 
 ### Running the tests with the uber jar:
 
-    cd upload 
-    PARALLEL=3 TARGET_ENVIRONMENT=prod TEST_TYPE=workflow java -jar getting-started-with-karate-0.0.1.jar
+    cd upload
+    PARALLEL=3 TARGET_ENVIRONMENT=prod TEST_TYPE=workflow java -jar kendo-0.0.1.jar
 
 ## [Configuration parameters](./docs/ConfigurationParameters.md)
 
